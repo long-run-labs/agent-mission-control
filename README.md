@@ -143,14 +143,8 @@ Questions, bugs and ideas: [GitHub Issues](https://github.com/long-run-labs/agen
 
 ## The full kit
 
-**[Agent Mission Control](https://buy.polar.sh/polar_cl_XzIYl3hBPBQKZT8p4Sn31PRBKXB7LYpEE45zi3KltXp)** adds what you need when you're not at a terminal:
-
-- a live local console with GO / NO-GO buttons, one-click answers, budget gauges and a steering box;
-- phone alerts through ntfy, plus desktop notifications, when the agent needs a GO, is blocked,
-  stops or finishes;
-- a sample mission to try the console before installing.
-
-$15, one-time, and it funds the work on this core.
+A paid kit with a live console and phone alerts used to be sold separately. It is no longer sold.
+This free plugin works on its own.
 
 ## License
 
