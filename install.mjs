@@ -2,7 +2,8 @@
 // Installs Mission Control into a project:
 //   node install.mjs [project-dir] [--goal "what the agent should achieve"] [--shared]
 // Copies the runtime to <project>/.mission/, registers the hook in <project>/.claude/settings.local.json
-// (or settings.json with --shared), adds the agent skill, and creates mission.json if it doesn't exist.
+// (or settings.json with --shared), adds the skills (the agent's protocol and the human's /mc), and
+// creates mission.json if it doesn't exist. In that project, this install takes over from the plugin.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -19,7 +20,7 @@ const src = path.dirname(fileURLToPath(import.meta.url));
 const HOOK_CMD = 'node "${CLAUDE_PROJECT_DIR}/.mission/hooks/mission-hook.mjs"';
 // Earlier versions wrote this spelling; it breaks under PowerShell, so re-installing replaces it.
 const LEGACY_CMDS = ['node "$CLAUDE_PROJECT_DIR/.mission/hooks/mission-hook.mjs"'];
-const EVENTS = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PostToolUseFailure", "Stop"];
+const EVENTS = ["SessionStart", "UserPromptExpansion", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PostToolUseFailure", "Stop"];
 const TOOL_EVENTS = new Set(["PreToolUse", "PostToolUse", "PostToolUseFailure"]);
 
 const fail = (msg) => { console.error(msg); process.exit(1); };
@@ -78,9 +79,11 @@ if (fs.existsSync(settingsFile)) {
 }
 
 const dest = path.join(target, ".mission");
-for (const dir of ["bin", "lib", "hooks", "dashboard"]) {
+fs.rmSync(path.join(dest, "bin"), { recursive: true, force: true }); // where 1.0.x kept mc; it's cli/ now
+for (const dir of ["cli", "lib", "hooks", "dashboard"]) {
   if (fs.existsSync(path.join(src, dir))) fs.cpSync(path.join(src, dir), path.join(dest, dir), { recursive: true });
 }
+fs.rmSync(path.join(dest, "hooks", "hooks.json"), { force: true }); // the plugin's hook list; settings register this copy
 fs.writeFileSync(path.join(dest, "package.json"), JSON.stringify({ type: "module", private: true }, null, 2) + "\n");
 // Keep state out of git: everything when the hook is local, only the state files when it's shared.
 fs.writeFileSync(path.join(dest, ".gitignore"), shared ? "mission.json\nmission.json.*\n" : "*\n");
@@ -93,7 +96,8 @@ if (fresh) create(missionFile, goal);
 // Merge the hook in without disturbing anything else; replace older spellings of our own command.
 fs.mkdirSync(path.dirname(settingsFile), { recursive: true });
 const backup = settingsFile + ".bak";
-if (rawSettings !== null && !fs.existsSync(backup)) fs.writeFileSync(backup, rawSettings);
+// Back up the user's own settings once; a file that already has our hook is a previous install, not theirs.
+if (rawSettings !== null && !fs.existsSync(backup) && !rawSettings.includes("mission-hook.mjs")) fs.writeFileSync(backup, rawSettings);
 settings.hooks ??= {};
 let added = 0, upgraded = 0;
 for (const ev of EVENTS) {
@@ -114,11 +118,13 @@ for (const ev of EVENTS) {
 }
 fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2) + "\n");
 
-const skillDir = path.join(target, ".claude", "skills", "mission-control");
-fs.mkdirSync(skillDir, { recursive: true });
-fs.copyFileSync(path.join(src, "skill", "SKILL.md"), path.join(skillDir, "SKILL.md"));
+const skillsDir = path.join(target, ".claude", "skills");
+for (const name of ["mission-control", "mc"]) {
+  fs.mkdirSync(path.join(skillsDir, name), { recursive: true });
+  fs.copyFileSync(path.join(src, "skills", name, "SKILL.md"), path.join(skillsDir, name, "SKILL.md"));
+}
 
-const excluded = shared ? [] : excludeFromGit(target, [".claude/settings.local.json*", ".claude/skills/mission-control/"]);
+const excluded = shared ? [] : excludeFromGit(target, [".claude/settings.local.json*", ".claude/skills/mission-control/", ".claude/skills/mc/"]);
 
 // An older install may have put the hook in the other settings file; running it from both would count every call twice.
 const otherFile = path.join(target, ".claude", shared ? "settings.local.json" : "settings.json");
@@ -126,14 +132,14 @@ let alsoInOther = false;
 try { const raw = fs.readFileSync(otherFile, "utf8"); alsoInOther = [HOOK_CMD, ...LEGACY_CMDS].some((c) => raw.includes(JSON.stringify(c).slice(1, -1))); } catch {}
 
 const rel = (p) => path.relative(process.cwd(), p) || ".";
-const hookNote = added || upgraded ? [added && `${added} events registered`, upgraded && `${upgraded} upgraded`].filter(Boolean).join(", ") : "already registered";
+const hookNote = added || upgraded ? [added && `${added} event${added === 1 ? "" : "s"} registered`, upgraded && `${upgraded} upgraded`].filter(Boolean).join(", ") : "already registered";
 console.log(`Mission Control installed in ${rel(target)}
   runtime   ${rel(dest)}/   (git-ignored: ${shared ? "state only" : "all of it"})
   mission   ${rel(missionFile)}${fresh ? " (new)" : " (kept existing)"}
   hooks     ${rel(settingsFile)} (${hookNote}${fs.existsSync(backup) ? `; your original is in ${path.basename(backup)}` : ""})
-  skill     ${rel(skillDir)}/SKILL.md${excluded.length ? `\n  git       kept out of commits via .git/info/exclude: ${excluded.join(", ")}` : ""}${alsoInOther ? `\n\n  Note: the hook is also registered in ${rel(otherFile)}. Remove the mission-hook.mjs entries there so it doesn't run twice.` : ""}
+  skills    ${rel(skillsDir)}/mission-control/ and mc/ (type /mc in the chat to steer)${excluded.length ? `\n  git       kept out of commits via .git/info/exclude: ${excluded.join(", ")}` : ""}${alsoInOther ? `\n\n  Note: the hook is also registered in ${rel(otherFile)}. Remove the mission-hook.mjs entries there so it doesn't run twice.` : ""}
 
 Next:
-  1. Set the goal:     node .mission/bin/mc.mjs goal "Ship the CSV export" --done-when "tests pass and PR is open"
-${fs.existsSync(path.join(src, "dashboard")) ? "  2. Open the console: node .mission/bin/mc.mjs ui   (prints a private link)" : "  2. Watch and steer:  node .mission/bin/mc.mjs status / say / approve"}
-  3. Start Claude Code in ${rel(target)} and give it the task.`);
+  1. Start Claude Code in ${rel(target)} and type: /mc goal Ship the CSV export --done-when tests pass and a PR is open
+  2. Steer from the chat with /mc status, /mc approve a1, /mc say …  (/mc help lists them all)
+${fs.existsSync(path.join(src, "dashboard")) ? "  3. Or open the console in a terminal: node .mission/cli/mc.mjs ui   (prints a private link)" : "  3. Or steer from a terminal: node .mission/cli/mc.mjs status / say / approve"}`);

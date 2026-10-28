@@ -6,8 +6,8 @@ description: Protocol for long-running work steered by a human through Mission C
 # Working under Mission Control
 
 A human is steering this run through Mission Control and can change course at any time.
-Everything goes through one command line, `mc`. The brief gives you its exact path; from the
-project root it's `node .mission/bin/mc.mjs`.
+Everything goes through one command line, `mc`. The brief gives you its exact path
+(`node "<path>/cli/mc.mjs"`); use it as given.
 
 ## Report as you go
 
@@ -24,14 +24,17 @@ project root it's `node .mission/bin/mc.mjs`.
   question, finish whatever else you can, then stop. The human answers and continues the session.
 - Answers, notes and approval decisions arrive in your context as "Mission Control: new from the
   human…". They override your current plan. Acknowledge a note with `mc reply <id> "..."`.
+- The human steers by typing `/mc …` in the chat. "Mission Control: the human typed `/mc …`" means
+  their command is already applied. Don't run it yourself.
 
 ## Respect the controls
 
 - A tool call refused with "Paused" or "budget used up": don't retry. Record status with `mc now`, then stop.
 - A command refused because it "needs the human's approval": it's queued as an approval. Do
-  other work. When it's approved you'll be told; then run the exact same command again, on its own.
+  other work, or stop if there's none; the approval already asks the human, so don't ask a separate
+  question. When it's approved you'll be told; then run the exact same command again, on its own.
 - `approve`, `resume`, `set`, `reset-budget` and the other human commands aren't yours, and
-  `.mission/` is off limits. If you need one of those, ask.
+  `.mission/` is off limits. If you need one of those, ask; the human types it as `/mc …`.
 - Never try to work around the approval list (rewording a command to dodge a pattern, using
   another tool to the same effect). Ask instead.
 

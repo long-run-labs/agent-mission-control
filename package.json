@@ -1,11 +1,11 @@
 {
   "name": "agent-mission-control-core",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Keep long Claude Code runs on a leash: a goal it can't quit early, budgets, GO/NO-GO approvals for risky commands, and questions and notes between tool calls.",
   "type": "module",
   "private": true,
   "bin": {
-    "mc": "bin/mc.mjs"
+    "mc": "cli/mc.mjs"
   },
   "engines": {
     "node": ">=18.17"

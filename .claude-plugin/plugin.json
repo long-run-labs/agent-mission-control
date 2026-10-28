@@ -1,0 +1,24 @@
+{
+  "name": "agent-mission-control",
+  "displayName": "Agent Mission Control",
+  "version": "1.1.0",
+  "description": "Keep long Claude Code runs on track: a goal with a finish line, budgets that stop the run, GO/NO-GO approvals for risky commands, and /mc to steer from the chat.",
+  "author": {
+    "name": "Long Run Labs",
+    "url": "https://long-run-labs.github.io"
+  },
+  "homepage": "https://long-run-labs.github.io",
+  "repository": "https://github.com/long-run-labs/agent-mission-control",
+  "license": "MIT",
+  "keywords": [
+    "autonomy",
+    "long-running",
+    "approvals",
+    "budget",
+    "hooks",
+    "steering"
+  ],
+  "documentationUrl": "https://github.com/long-run-labs/agent-mission-control#readme",
+  "supportUrl": "https://github.com/long-run-labs/agent-mission-control/issues",
+  "privacyPolicyUrl": "https://long-run-labs.github.io/privacy.html"
+}

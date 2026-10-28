@@ -1,0 +1,16 @@
+{
+  "name": "long-run-labs",
+  "owner": {
+    "name": "Long Run Labs",
+    "url": "https://long-run-labs.github.io"
+  },
+  "description": "Tools for long-running AI coding agents, by Long Run Labs.",
+  "plugins": [
+    {
+      "name": "agent-mission-control",
+      "source": "./",
+      "description": "Keep long Claude Code runs on track: a goal with a finish line, budgets that stop the run, GO/NO-GO approvals for risky commands, and /mc to steer from the chat.",
+      "category": "productivity"
+    }
+  ]
+}
